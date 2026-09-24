@@ -1,0 +1,69 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashboards-config
+  namespace: opensearch
+data:
+  opensearch_dashboards.yml: |
+    server.name: dashboards
+    server.host: "0.0.0.0"
+    server.port: 5601
+    opensearch.hosts: ["http://opensearch:9200"]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboards
+  namespace: opensearch
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dashboards
+  template:
+    metadata:
+      labels:
+        app: dashboards
+    spec:
+      containers:
+        - name: dashboards
+          image: opensearchproject/opensearch-dashboards:3.7.0
+          env:
+            - name: DISABLE_SECURITY_DASHBOARDS_PLUGIN
+              value: "true"
+          ports:
+            - containerPort: 5601
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              memory: "1Gi"
+          readinessProbe:
+            httpGet:
+              path: /api/status
+              port: 5601
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          volumeMounts:
+            - name: config
+              mountPath: /usr/share/opensearch-dashboards/config/opensearch_dashboards.yml
+              subPath: opensearch_dashboards.yml
+      volumes:
+        - name: config
+          configMap:
+            name: dashboards-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashboards
+  namespace: opensearch
+spec:
+  type: NodePort
+  selector:
+    app: dashboards
+  ports:
+    - port: 5601
+      targetPort: 5601
+      nodePort: 30561
