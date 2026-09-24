@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opensearch-config
+  namespace: opensearch
+data:
+  opensearch.yml: |
+    cluster.name: os-lab
+    node.name: ${NODE_NAME}
+
+    network.host: 0.0.0.0
+    http.port: 9200
+    transport.port: 9300
+
+    node.roles: [cluster_manager, data, ingest]
+    path.data: /usr/share/opensearch/data
+
+    discovery.seed_hosts: ["opensearch-headless"]
+    cluster.initial_cluster_manager_nodes: ["opensearch-0", "opensearch-1", "opensearch-2"]
+
+    plugins.security.disabled: true
